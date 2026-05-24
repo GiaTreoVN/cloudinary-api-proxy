@@ -31,10 +31,17 @@ export default async function handler(req, res) {
       });
     }
 
+    // Tạo Basic Auth header
+    const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+
     // Gọi Cloudinary API resources/by_asset_folder
-    const url = `https://${apiKey}:${apiSecret}@api.cloudinary.com/v1_1/${cloudName}/resources/by_asset_folder?asset_folder=${encodeURIComponent(folderPath)}`;
+    const url = `https://api.cloudinary.com/v1_1/${cloudName}/resources/by_asset_folder?asset_folder=${encodeURIComponent(folderPath)}`;
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Basic ${auth}`
+      }
+    });
     const data = await response.json();
 
     if (!response.ok) {
