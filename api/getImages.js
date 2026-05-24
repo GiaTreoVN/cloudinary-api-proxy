@@ -22,7 +22,6 @@ export default async function handler(req, res) {
 
   try {
     // Lấy API Key và Secret từ environment variables
-    // Bạn cần set ở Vercel Dashboard → Settings → Environment Variables
     const apiKey = process.env.CLOUDINARY_API_KEY;
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
@@ -32,26 +31,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Tạo Basic Auth header
-    const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
-
-    // Gọi Cloudinary API
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/resources/search`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          expression: `folder="${folderPath}" AND resource_type="image"`,
-          max_results: 500,
-          sort_by: [['public_id', 'asc']]
-        })
-      }
-    );
-
+    // Gọi Cloudinary API resources/by_asset_folder
+    const url = `https://${apiKey}:${apiSecret}@api.cloudinary.com/v1_1/${cloudName}/resources/by_asset_folder?asset_folder=${encodeURIComponent(folderPath)}`;
+    
+    const response = await fetch(url);
     const data = await response.json();
 
     if (!response.ok) {
@@ -60,13 +43,16 @@ export default async function handler(req, res) {
       });
     }
 
-    // Return danh sách URL
-    const urls = (data.resources || []).map(r => r.secure_url);
+    // Extract URLs từ response
+    const resources = data.resources || [];
+    const urls = resources.map(r => r.secure_url);
+
     res.status(200).json({ 
       success: true, 
       count: urls.length,
       urls: urls,
-      csv: urls.join(',')
+      csv: urls.join(','),
+      total_count: data.total_count
     });
 
   } catch (error) {
